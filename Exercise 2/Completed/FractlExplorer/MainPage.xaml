@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<ContentPage xmlns="http://xamarin.com/schemas/2014/forms" 
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" 
+    x:Class="FractlExplorer.MainPage"
+    Title="Fractl Explorer" BackgroundColor="Black">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Reset" Clicked="OnReset" />
+    </ContentPage.ToolbarItems>
+
+    <Grid>
+        <Image x:Name="imageHost">
+            <Image.GestureRecognizers>
+                <PanGestureRecognizer PanUpdated="OnImagePanned" />
+                <PinchGestureRecognizer PinchUpdated="OnImagePinched" />
+            </Image.GestureRecognizers>
+        </Image>
+
+        <Label x:Name="timer" VerticalOptions="End" HorizontalOptions="Center" 
+              TextColor="Black" FontSize="20" />
+
+        <ContentView VerticalOptions="End" HorizontalOptions="Center" Padding="0,0,2,2">
+            <Label Text="{Binding Source={x:Reference timer}, Path=Text}" 
+                  TextColor="White" FontSize="20" />
+        </ContentView>
+    </Grid>
+
+</ContentPage>
