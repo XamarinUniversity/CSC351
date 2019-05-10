@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+    <title>Writing multithreaded mobile applications</title>
+    <link rel="stylesheet" type="text/css" href="./parts/res/styles/normalize.css">
+    <link rel="stylesheet" type="text/css" href="./parts/res/styles/prettify.css">
+    <link rel="stylesheet" type="text/css" href="./parts/res/styles/styles.css">
+</head>
+
+<body>
+    <!-- This will be filled in at runtime -->
+    <header role="course-title"></header>
+
+    <section id="main">
+
+        <h2>Before you begin</h2>
+        <p>
+        This is a Xamarin.Forms class. To complete the coding exercises, you will need a Xamarin.Forms development environment with either a simulator or a device to run the exercise on. Please see the <a href="https://university.xamarin.com/resources/setup-and-troubleshooting">setup page</a> if you need help installing the Xamarin development environment.
+        </p>
+
+        <h2>Overview</h2>
+        <p>
+            In this class you will learn how to write multithreaded applications to keep your applications' UI responsive and take advantage of the performance benefits of multicore processors.
+        </p>
+
+        <h2>Objectives</h2>
+        <ol>
+           <li>Using multiple threads in mobile apps</li>
+           <li>Creating threads and tasks</li>
+           <li>Dealing with exceptions</li>
+           <li>Canceling tasks</li>
+        </ol>
+
+        <h2>Lecture</h2>
+        <p><a href="./parts/slides.pdf">CSC351 - Writing multi-threaded mobile applications</a>.</p>
+
+        <h2>Exercises</h2>
+        <p>
+            Exercise materials are available from <a href="https://github.com/XamarinUniversity/CSC351/">GitHub</a>. The code can be cloned through a desktop Git client or <a href="https://github.com/XamarinUniversity/CSC351/archive/master.zip">downloaded directly</a> as a ZIP file.
+        </p>
+        <ol>
+            <li><div class="objective">Explore an unresponsive app</div>
+            <a href="./parts/part1.html">Exercise</a>
+            <br />
+            In this exercise, we will examine an application with an unresponsive UI and explore the specific causes.
+            </li>
+
+            <li><div class="objective">Partition work over multiple threads</div>
+            <a href="./parts/part2.html">Exercise</a>
+            <br />
+            In this exercise, we will partition our CPU bound work to take advantage of multithreading and multicore processors.
+            </li>
+
+            <li><div class="objective">Handle Exceptions that occur in Tasks</div>
+            <a href="./parts/part3.html">Exercise</a>
+            <br />
+            In this exercise, we will throw exceptions from within a Task and manage it in a try/catch block.
+            </li>
+
+            <li><div class="objective">Use cancellation tokens to stop long running tasks</div>
+            <a href="./parts/part4.html">Exercise</a>
+            <br />
+            In this exercise, we will use cancellation tokens to interrupt long running tasks.
+            </li>
+        </ol>
+
+        <!-- This section is for additional links and examples that are relevant to 
+            the material in this course -->
+        <h2>Additional resources</h2>
+
+        <div class="wslist">
+
+            <a target="_blank" href="http://blogs.msdn.com/b/pfxteam/archive/2011/10/24/10229468.aspx">Task.Run vs Task.Factory.StartNew</a>
+            <a target="_blank" href="https://msdn.microsoft.com/en-us/magazine/jj991977.aspx">Async/Await - Best Practices in Asynchronous Programming</a>
+            <a target="_blank" href="https://msdn.microsoft.com/en-us/library/dd997364(v=vs.110).aspx">Cancellation in managed threads</a>   
+            <a target="_blank" href="https://msdn.microsoft.com/library/65zzykke(v=vs.100).aspx">Using Iterators</a>     
+            
+        </div>
+
+    </section>
+
+    <script src="./parts/res/js/jquery.min.js"></script>
+    <script src="./parts/res/js/prettify.js"></script>
+    <script src="./parts/res/js/script.js"></script>
+
+    <footer>Copyright (C) 2018 Xamarin Inc., Microsoft.<br><a target="_blank" href="http://university.xamarin.com">Visit Xamarin University for more classes and content</a></footer>
+</body>
+</html>
