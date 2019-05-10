@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+    <title>Use cancellation tokens to stop long running tasks</title>
+    <link rel="stylesheet" type="text/css" href="./res/styles/normalize.css">
+    <link rel="stylesheet" type="text/css" href="./res/styles/prettify.css" />
+    <link rel="stylesheet" type="text/css" href="./res/styles/styles.css">
+</head>
+
+<body>
+    <!-- Use the same title as the StartHere -->
+    <header>Writing multithreaded mobile applications</header>
+
+    <section id="main">
+
+        <h1 id="page-title"></h1>
+
+        <h2>Duration</h2>
+        <p>15 minutes</p>
+
+        <h2>Goals</h2>
+
+        <p>
+            The primary goal of this lab is to safely stop long running tasks.
+        </p>
+
+        <div align="center"><img src="res/images/Ex1_complete.png" width="320" alt=""  style="border:1px solid #999999"/></div>
+      
+        <h2>Required assets</h2>
+        <p>
+            This exercise is a continuation of the previous exercise.  You may use your existing project or open the <b>Completed</b> solution in the <b>Exercise 3</b> folder.
+            The provided <strong>Exercise 4</strong> folder contains a sub-folder named <strong>Completed</strong> with a solution you can use to check your work. Please make sure you have this folder before you begin.
+        </p>
+
+        <!-- Give them a challenge here, high-level steps of what we want them to do
+             so they can use this instead of the step-by-step (baby steps) included below -->
+        <h2>Challenge</h2>
+
+        <p>
+            <ol>
+                <li>Update the code in <b>MainPage.xaml.cs</b> to re-generate the fractal when it's panned or zoomed.</li>
+                <li>Update <b>GenerateFractlAsync</b> to accept a <code>CancellationToken</code>.  Pass the token when creating new tasks, check for cancellation within the <code>for</code> loop, and catch the exception.</li>
+                <li>Create a <code>CancellationTokenSource</code> every time <b>StartRenderAsync</b> is called and pass the token to <b>GenerateFractlAsync</b>.</li>
+            </ol>
+        </p>
+
+      
+        <!-- Steps -->
+        <h1>Steps</h1>
+  
+        <h2>Regenerate fractal on move</h2>
+        <p>Our first step is to regenerate the fractal when the image is panned or zoomed.</p>
+        <ol>
+            <li>Open MainPage.xaml.cs.</li>
+            <li>In <b>OnImagePanned</b>, when the <b>StatusType</b> is <b>GestureStatus.Running</b>, add a call to <code>StartRenderAsync</code> after the center position has been calculated.</li>
+            <li>In <b>OnImagePinched</b>, when the <b>StatusType</b> is <b>GestureStatus.Running</b>, add a call to <code>StartRenderAsync</code> after the center position has been calculated.</li>
+<p><a href="#" onclick="toggleCode(this,'OnImagePanned');return false;" class="uiitem">Show Code</a>
+<div class="indent-medium" id="OnImagePanned" style="display:none;">
+<pre class="prettyprint">
+void OnImagePanned(object sender, PanUpdatedEventArgs e)
+{
+    ...
+    else if (e.StatusType == GestureStatus.Running)
+    {
+        center = new Complex(...);
+
+        StartRenderAsync();
+    }
+    ...
+}
+
+void OnImagePinched(object sender, PinchGestureUpdatedEventArgs e)
+{
+    ...
+    else if (e.Status == GestureStatus.Running)
+    {
+        ...
+        scale = Math.Min (5, Math.Max(.1, scale));  
+
+        StartRenderAsync();
+    }
+    ...
+}
+</pre>
+</div>
+</p>
+        </ol>
+
+        <h2>Check for cancellation</h2>
+        <ol>
+            <li>Open the <b>GenerateFractlAsync</b> method and change the signature to accept a second parameter - a <code>CancellationToken</code> named <b>cancelToken</b>.</li>
+            <li>Delete or comment-out the code to throw an exception from the previous exercise.</li>
+            <li>Pass the cancellation token to the Task.  Use an overload of <code>Task.Run</code> that accepts a <code>CancellationToken</code> as the second parameter.</li>
+            <li>At the start of the for loop inside the lambda, call the <code>ThrowIfCanncelationRequested</code> method on <b>cancelToken</b>.</li>
+            <li>Add a specific <b>catch</b> block to handle <code>OperationCanceledException</code>.  If the exception is raised, just return.</li>
+<p><a href="#" onclick="toggleCode(this,'GenerateFractlAsync');return false;" class="uiitem">Show Code</a>
+<div class="indent-medium" id="GenerateFractlAsync" style="display:none;">
+<pre class="prettyprint">
+private async Task GenerateFractlAsync(int maxIterations, CancellationToken cancelToken)
+{
+    ...
+    var tasks = PartitionRows(Environment.ProcessorCount)
+        .Select(range => Task.Run(() =>
+            {
+                double startRow = row + (range.Item1 * increment);
+                for (int y = range.Item1; y < range.Item2; y++)
+                {
+                    cancelToken.ThrowIfCancellationRequested();
+                    ...
+                }
+            }, cancelToken)).ToArray();
+
+    Task renderTask = null;
+    try
+    { ... }
+    catch (OperationCanceledException)
+    {
+        return;
+    }
+    catch 
+    {
+        AggregateException aex = renderTask.Exception;
+        ...
+    }
+
+    RefreshScreen();
+
+    sw.Stop();
+    timer.Text = sw.Elapsed.ToString();
+}
+</pre>
+</div>
+</p>
+        </ol>
+
+        <h2>Create a cancellation token source</h2>
+        <ol>
+            <li>Add a new class level field of type <code>CancellationTokenSource</code> named <b>tokenSource</b>.</li>
+            <li>In the <code>StartRenderAsync</code> method, if <b>tokenSource</b> is not <code>null</code>, call its <code>Cancel</code> method.</li>
+            <li>Assign a new instance of <code>CancellationTokenSource</code> to <b>tokenSource</b>.</li>
+            <li>Update the call to <code>GenerateFractalAsync</code>, pass in <code>tokenSource.Token</code> as the second parameter.</li>
+            <li>Run the application.</li>
+            <p><a href="#" onclick="toggleCode(this,'StartRenderAsync');return false;" class="uiitem">Show Code</a>
+<div class="indent-medium" id="StartRenderAsync" style="display:none;">
+<pre class="prettyprint">
+public partial class MainPage : ContentPage
+{
+    CancellationTokenSource tokenSource;
+    ...
+    private Task StartRenderAsync()
+    {
+        if (tokenSource != null)
+            tokenSource.Cancel();
+
+        tokenSource = new CancellationTokenSource();
+        return GenerateFractlAsync(maxIterations, tokenSource.Token);
+    }
+    ...
+}
+</pre>
+</div>
+</p>
+        </ol>
+
+        <h1>Summary</h1>
+        <p>
+            In this exercise you used a cancellation token to interrupt a long running task and improved your application's responsiveness.
+        </p>
+        <div class="align-right">
+            <a href="../Start%20Here.html">Go Back</a>
+        </div>
+    </section>
+
+    <script src="./res/js/jquery.min.js"></script>
+    <script src="./res/js/prettify.js"></script>
+    <script src="./res/js/script.js"></script>
+
+    <footer>Copyright (C) 2018 Xamarin Inc., Microsoft.</footer>
+</body>
+</html>

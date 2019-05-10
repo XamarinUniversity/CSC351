@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+    <title>Partition work over multiple threads</title>
+    <link rel="stylesheet" type="text/css" href="./res/styles/normalize.css">
+    <link rel="stylesheet" type="text/css" href="./res/styles/prettify.css" />
+    <link rel="stylesheet" type="text/css" href="./res/styles/styles.css">
+</head>
+
+<body>
+    <!-- Use the same title as the StartHere -->
+    <header>Writing multithreaded mobile applications</header>
+
+    <section id="main">
+
+        <h1 id="page-title"></h1>
+
+        <h2>Duration</h2>
+        <p>20 minutes</p>
+
+        <h2>Goals</h2>
+
+        <p>
+            The primary goal of this lab is to partition CPU bound work so it can be processed simultaneously on multiple threads.
+        </p>
+
+        <img src="res/images/Ex1_complete.png" class="center" style='border:1px solid #999999'/>
+      
+        <h2>Required assets</h2>
+        <p>
+            You will be using the <b>FractlExplorer</b> we looked at in the first exercise. In addition, a completed version of this lab is provided in the <strong>Exercise 2</strong> folder so you can check your work.
+        </p>
+
+        <!-- Give them a challenge here, high-level steps of what we want them to do
+             so they can use this instead of the step-by-step (baby steps) included below -->
+        <h2>Challenge</h2>
+        <p>
+            Here are the high-level steps you will perform in this lab exercise.
+        </p>
+        <ol>
+            <li>Open <b>MainPage.xaml.cs</b> in the PCL project.</li>
+            <li>Update the <b>GenerateFractl</b> method to execute asynchronously by wrapping the for loop in a <code>Task</code>.</li>
+            <li>Update the <b>StartRender</b> method to return the <code>Task</code> provided by <b>GenerateFractlAsync</b>.</li>
+            <li>Run the application and note any responsiveness and performance changes.</li>
+            <li>Create a method that partitions the rows to be rendered by the number of processors available. The completed solution returns an <code>IEnumerable</code> of <code>Tuple</code>s that return 2 integers; one indicating the starting row and one indicating the final row to be rendered for that partition.</li>
+            <li>Update the <b>GenerateFractlAsync</b> method to create and execute a Task for each partition, generating the data for the rows specified in the partition.</li>
+            <li>Run the application and note any performance improvements.</li>
+        </ol>
+
+      
+        <!-- Steps -->
+        <h1>Steps</h1>
+
+        <h2>Generate fractals asynchronously</h2>
+        <p>As a first step, we'll move the fractal generation off of the UI thread.</p>
+        <ol>
+            <li>Open MainPage.xaml.cs and scroll to the <code>GenerateFractl</code> method.</li>
+            <li>Change the method signature to be asynchronous:
+                <ul>
+                    <li>Change the return type to <code>Task</code>.</li>
+                    <li>Add the <code>async</code> keyword before the return type.</li>
+                    <li>Change the method name to <b>GenerateFractlAsync</b>.</li>
+                </ul>
+            </li>
+            <li>Queue the entire contents of the for loop to run on the ThreadPool using the static <code>Task.Run</code> method and await.</li>
+            <li>Change the call in <code>StartRender</code> from <b>GenerateFractl</b> to <b>GenerateFractlAsync</b>.
+            <li>Run the application and try panning while the fractal is being generated.  What happens? Has performance improved over the synchronous version?</li>
+<p><a href="#" onclick="toggleCode(this,'GenerateFractlAsync');return false;" class="uiitem">Show Code</a>
+<div class="indent-medium" id="GenerateFractlAsync" style="display:none;">
+<pre class="prettyprint">
+private async Task GenerateFractlAsync (int maxIterations)
+{
+    ...
+    await Task.Run (()=> 
+        {
+            for (int y = 0; y < viewHeight; y++)
+            {
+                mandelbrotGenerator.RenderRow(left, row, increment, 
+                    maxIterations, colors, memoryBuffer, (int)(y*viewWidth), (int)viewWidth);
+                row += increment;
+            }
+        });
+    ...
+}
+</pre>
+</div>
+</p>
+        </ol>
+
+        <h2>Update the StartRender method using the TAP</h2>
+        <p>We should update the <b>StartRender</b> method to return a <b>Task</b> so it can be awaited by the caller. 
+        <ol>
+            <li>Change the <code>StartRender</code> method signature to return as <code>Task</code>, however we won't need to use the <code>async</code> keyword for this method.
+                 <ul>
+                    <li>Change the return type to <code>Task</code>.</li>
+                    <li>Change the method name to <b>StartRendererAsync</b>.</li>
+                </ul>
+            </li>
+            <li>Return a Task; we can return the result of <code>GenerateFractlAsync</code> since we're not doing any additional work in this method.</li>
+            <li>Update all calls to <code>StartRenderer</code> to <code>StartRenderAsync</code>.</li>
+<p><a href="#" onclick="toggleCode(this,'StartRenderAsync');return false;" class="uiitem">Show Code</a>
+<div class="indent-medium" id="StartRenderAsync" style="display:none;">
+<pre class="prettyprint">
+...
+void OnReset(object sender, EventArgs e)
+{
+    ...
+    StartRenderAsync();
+}
+
+private Task StartRenderAsync ()
+{
+    return GenerateFractlAsync (maxIterations);
+}
+</pre>
+</div>
+</p>
+        </ol>
+
+
+        <h2>Divide the screen based on the number of processors available</h2>
+        <p>Create an iterator method which is similar to a list but avoids the memory overhead by returning each partition as it's created.<br>
+            We'll use Tuples of integers to provide the partitions, each tuple will provide the starting and ending row to processed for its partition.</p>
+        <ol>
+            <li>Create a new method named <b>PartitionRows</b> that accepts a single <code>int</code> argument named <b>segments</b>.</li>
+            <li>Set the return type to an <code>IEnumerable</code> of <code>Tuple</code>s that contain two integers. </li>
+            <p><a href="#" onclick="toggleCode(this,'IEnumerable');return false;" class="uiitem">Show Code</a>
+<div class="indent-medium" id="IEnumerable" style="display:none;">
+<pre class="prettyprint">
+IEnumerable&lt;Tuple&lt;int, int&gt;&gt; PartitionRows(int segments)
+{
+
+}
+</pre></div></p>
+            <li>Create an integer named <b>pos</b>.</li>
+            <li>Create an integer named <b>partitions</b> and set it to the result of <b>viewHeight</b> divided by <b>segments</b>.  You'll need to cast <b>segments</b> to a <code>double</code>.  Use the <code>Math.Ceiling</code> method to round the result down to a whole number.</li>
+            <li>Use the <code>yield</code> keyword to return the tuple partitions as they're requested.  Use a <code>for</code> loop to iterate over each segment, and use <code>yield return</code> when creating each <code>tuple</code>.  A possible solution is shown below.</li>
+            <p><a href="#" onclick="toggleCode(this,'PartitionRows');return false;" class="uiitem">Show Code</a>
+<div class="indent-medium" id="PartitionRows" style="display:none;">
+<pre class="prettyprint">
+IEnumerable&lt;Tuple&lt;int, int&gt;&gt; PartitionRows(int segments)
+{
+    int pos = 0;
+    int partitions = (int) Math.Ceiling(viewHeight / (double)segments);
+    for (int i = 0; i < segments-1; i++, pos += partitions)
+        yield return Tuple.Create(pos, pos + partitions);
+
+    yield return Tuple.Create(pos, (int)viewHeight);
+}
+</pre></div></p>
+        </ol>
+
+        <h2>Generate the fractal using multiple threads</h2>
+        <p>Finally, we'll update the GenerateFractlAsync method to split the work across multiple threads using the <b>PartitionRows</b> method.</p>
+        <ol>
+            <li>Comment-out or delete the existing <code>for</code> loop.</li>
+            <li>First we'll create the <code>Task</code>s.  In place of the <code>for</code> loop, call <code>PartitionRows</code> passing in <code>Environment.ProcessorCount</code>.  Use the Enumerable <code>Select</code> method on the returned <code>IEnumerable</code> and create a new <code>Task</code> for each <code>Tuple</code> using <code>Task.Run</code>.</li>
+            <li>Convert the new <code>IEnumerable</code> to an <code>Array</code> and store it in a local variable named <b>tasks</b>.
+            <p><a href="#" onclick="toggleCode(this,'ProcessorCount');return false;" class="uiitem">Show Code</a>
+<div class="indent-medium" id="ProcessorCount" style="display:none;">
+<pre class="prettyprint">
+private async Task GenerateFractlAsync(int maxIterations)
+{
+    ...
+    double row = center.Imaginary - (viewHeight / 2) * increment;
+
+    var tasks = PartitionRows(Environment.ProcessorCount)
+        .Select(range => Task.Run(() =>
+            {
+               
+            })).ToArray();
+    ...
+}
+</pre></div></p>
+            <li>Within each <code>Task</code>, create a <code>double</code> named <b>startRow</b> and assign it to the sum of <b>row</b> and <code>range.Item1 * increment</code>.  Now that we're using multiple threads, we can't share the <b>row</b> variable, we'll use the local <b>startRow</b> variable instead.</li>
+            <li>Now loop over the range provided by the <code>Tuple</code> (locally named <b>range</b> within the lambda in the code above).  Loop from <b>range.Item1</b> to <b>range.Item2</b>.</li>
+            <li>Within the loop, use the generator <b>mandelbrotGenerator</b>'s RenderRow method.  This code is unchanged from the previous version. </li>
+            <li>Increment <b>startRow</b> by <b>increment</b>.  
+            <li>After the assignment of <b>tasks</b>, <code>await</code> for all of the <code>Task</code>s to complete.  Use <code>Task.WhenAll</code> to await the array of <code>Task</code>s.</li>
+            <p><a href="#" onclick="toggleCode(this,'Select');return false;" class="uiitem">Show Code</a>
+<div class="indent-medium" id="Select" style="display:none;">
+<pre class="prettyprint">
+var tasks = PartitionRows(Environment.ProcessorCount)
+    .Select(range => Task.Run(() =>
+        {
+            double startRow = row + (range.Item1 * increment);
+            for (int y = range.Item1; y < range.Item2; y++)
+            {
+                mandelbrotGenerator.RenderRow(left, startRow, increment, 
+                    maxIterations, colors, memoryBuffer, (int)(y*viewWidth), (int)viewWidth);
+                startRow += increment;
+            }
+        })).ToArray();
+
+await Task.WhenAll(tasks);
+</pre></div></p>
+            <li>Run the application, is there a noticeable performance improvement?</li>
+        </ol>
+
+        <h1>Summary</h1>
+        <p>
+            In this exercise you partitioned CPU intensive work and scheduled multiple tasks to the ThreadPool to improve performance and responsiveness of an application.
+        </p>
+        <div class="align-right">
+            <a href="../Start%20Here.html">Go Back</a>
+        </div>
+    </section>
+
+    <script src="./res/js/jquery.min.js"></script>
+    <script src="./res/js/prettify.js"></script>
+    <script src="./res/js/script.js"></script>
+
+    <footer>Copyright (C) 2018 Xamarin Inc., Microsoft.</footer>
+</body>
+</html>
